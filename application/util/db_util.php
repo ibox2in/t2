@@ -86,14 +86,14 @@ function drop_user_db($connection) {
 
 function get_connection_user_db() {
     $config = get_config();
-    $connection = mysql_connect('', $config["db"]["user_db"]["username"], $config["db"]["user_db"]["password"]) or die("Could not connect user db: " . mysql_error());
+    $connection = mysql_connect($config["db"]["order_db"]["host"], $config["db"]["user_db"]["username"], $config["db"]["user_db"]["password"]) or die("Could not connect user db: " . mysql_error());
     mysql_select_db($config["db"]["user_db"]["dbname"]);
     return $connection;
 }
 
 function get_connection_order_db() {
     $config = get_config();
-    $connection = mysql_connect('', $config["db"]["order_db"]["username"], $config["db"]["order_db"]["password"]) or die("Could not connect order db: " . mysql_error());
+    $connection = mysql_connect($config["db"]["order_db"]["host"], $config["db"]["order_db"]["username"], $config["db"]["order_db"]["password"]) or die("Could not connect order db: " . mysql_error());
     mysql_select_db($config["db"]["order_db"]["dbname"]);
     return $connection;
 }
