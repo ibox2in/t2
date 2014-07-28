@@ -17,13 +17,13 @@ $config = array(
             "dbname" => "t_db",
             "username" => "vk",
             "password" => "devqwa123",
-            "host" => "mysql-env-8899864.jelastic.regruhosting.ru"
+            "host" => ""
         ),
         "order_db" => array(
             "dbname" => "t_db",
             "username" => "vk",
             "password" => "devqwa123",
-            "host" => "mysql-env-8899864.jelastic.regruhosting.ru"
+            "host" => ""
         )
     ),
     "paths" => array(

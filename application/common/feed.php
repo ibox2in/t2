@@ -536,7 +536,7 @@ $ids = array();
         <div>
             <div id="refresh_button" class="mt20"></div>
             <div class="hr mt10"></div>
-            <table class="txt" width="720" border="0" cellspacing="0" cellpadding="0">
+            <table class="txt" width="720" border="0" cellspacing="0" cellpadding="0" style="table-layout:fixed">
                 <tbody id="order_list" >
                 </tbody>
             </table>
