@@ -21,6 +21,12 @@ if (!preg_match('/^[\pL][\pL-_. 0-9]{5,31}$/u', $_POST["login"])) {
     die();
 }
 
+$user = get_user_by_login($_POST["login"]);
+if(!empty($user)) {
+    header('HTTP/1.1 403 Forbidden', true, 403);
+    die();
+}
+
 if(add_user($_POST["login"], md5($_POST["password"]), $_POST["type"] == TYPE_CUSTOMER ? TYPE_CUSTOMER : TYPE_CONTRACTOR) && login($_POST["login"], md5($_POST["password"]))) {
     echo JSON_SUCCESS_TRUE;
 } else {

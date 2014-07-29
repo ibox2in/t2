@@ -83,6 +83,15 @@ function add_user($login, $password, $type) {
     return $result;
 }
 
+function get_user_by_login($login) {
+    $link = get_connection_user_db();
+    $query = mysqli_prepare($link,"SELECT * FROM t_user WHERE login = ?");
+    mysqli_stmt_bind_param($query, 's', $login);
+    mysqli_stmt_execute($query);
+    $result = mysqli_stmt_get_result($query);
+    return mysqli_fetch_array($result);
+}
+
 function get_user_by_login_password($login, $password) {
     $link = get_connection_user_db();
     $query = mysqli_prepare($link,"SELECT * FROM t_user WHERE login = ? AND password = ?");

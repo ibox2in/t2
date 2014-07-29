@@ -133,6 +133,8 @@
                             failure: function (form, action) {
                                 if(action.response.status == 406) {
                                     Ext.Msg.alert('<?= _("Ошибка") ?>', '<?= _("Неправильный ввод") ?>');
+                                } else if(action.response.status == 403) {
+                                    Ext.Msg.alert('<?= _("Ошибка") ?>', '<?= _("Такое имя пользователя уже существует") ?>');
                                 }
                             }
                         });
