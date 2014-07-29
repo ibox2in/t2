@@ -2,12 +2,13 @@
 <html>
 <head>
     <title>Лента заказов</title>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
     <link rel="stylesheet" type="text/css" href="../../public/css/style.css" />
     <link rel="stylesheet" type="text/css" href="../../public/css/css/ext-all.css" />
     <script type="text/javascript" src="../../public/js/ext.js"></script>
     <script type="text/javascript" src="../../public/js/ext-all.js"></script>
-    <script type="text/javascript" src="../../public/js/jquery2.min.js"></script>
-    <script type="text/javascript" src="../../public/js/jquery-ias.min.js"></script>
+    <script type="text/javascript" src="../../public/js/jquery.min.js"></script>
+    <script type="text/javascript" src="../../public/js/readmore.min.js"></script>
 </head>
 <body>
 <?php
@@ -17,45 +18,6 @@ init_session();
 if(!check_auth(true)) {
     die_with_redirect();
 }
-
-
-require_once("../util/order_util.php");
-require_once("../../resources/config.php");
-
-function asd() {
-    echo get_config()["db"]["user_db"]["dbname"];
-}
-
-
-$orders = array();
-
-if(intval($_GET["max_id"]) != 0) {
-    $orders = get_orders_by_customer_id_and_max_id_and_limit($_SESSION["uid"], intval($_GET["max_id"]), PAGE_SIZE);
-} else {
-    $orders = get_orders_by_customer_id_and_limit($_SESSION["uid"], PAGE_SIZE);
-}
-
-$ids = array();
-
-
-//$orders = get_orders_by_customer_id($_SESSION["uid"]);
-//foreach($orders as $key => &$val) {
-//    if($val["status"] == STATUS_COMPLETED) {
-//        $val["status"] = "Выполнен";
-//    } else {
-//        $val["status"] = "Открыт";
-//    }
-//}
-//echo json_encode($orders)
-
-//add_user("test91", "test", 0);
-//session_start();
-//login("test91", "test");
-//echo "suc";
-//$orders = get_orders_page(298, 20);
-//foreach($orders as $key => &$val) {
-//    //echo $val["id"]."<br/>";
-//}
 ?>
 
 <!--  ========================================================  If customer  ================================  -->
@@ -68,6 +30,7 @@ $ids = array();
     Ext.onReady(function() {
 
         var last_id = 0;
+        var load = true;
 
         Ext.create('Ext.form.Panel', {
             style: "margin: 0px auto 0px auto;",
@@ -97,9 +60,9 @@ $ids = array();
 
         Ext.create('Ext.form.Panel', {
 
-            title: 'Новый заказ',
+            title: '<?= _("Новый заказ") ?>',
             bodyPadding: 5,
-            width: 300,
+            width: 400,
             url: '../customer/add_order_form.php',
 
             layout: 'anchor',
@@ -109,7 +72,8 @@ $ids = array();
 
             defaultType: 'textfield',
             items: [{
-                fieldLabel: '<?= _("Название") ?>',
+                xtype: 'textarea',
+                fieldLabel: '<?= _("Описание") ?>',
                 name: 'title'
             }, {
                 fieldLabel: '<?= _("Цена") ?>',
@@ -120,7 +84,6 @@ $ids = array();
             buttons: [{
                 text: '<?= _("Опубликовать") ?>',
                 formBind: true,
-                //only enabled once the form is valid
                 disabled: true,
                 handler: function () {
                     var form = this.up('form').getForm();
@@ -129,16 +92,30 @@ $ids = array();
                             success: function (form, action) {
                                 var data = Ext.JSON.decode(action.response.responseText);
 
-                                form_row(data.response, function(list) {
+                                formRow(data.response, function(list) {
                                     $(list).hide().prependTo("#order_list").fadeIn();
+                                    checkReadmore();
+                                    checkEmpty();
                                 });
 
+                                $(".row").on({
+                                    mouseenter: function () {
+                                        $(this).addClass('hover');
+                                    },
+                                    mouseleave:function () {
+                                        $(this).removeClass('hover');
+                                    }
+                                });
+
+
                             },
-                            failure: function (result, request) {
-                                if(result.status == 401) {
+                            failure: function (form, action) {
+                                if(action.response.status == 401) {
                                     Ext.Msg.alert('<?= _("Ошибка") ?>', '<?= _("Вы вышли") ?>', function() {
                                         window.location.href = "../../public/index.php";
                                     });
+                                } else if(action.response.status == 406) {
+                                    Ext.Msg.alert('<?= _("Ошибка") ?>', '<?= _("Неправильный ввод") ?>');
                                 }
                             }
                         });
@@ -152,6 +129,7 @@ $ids = array();
 
         var order_store = new Ext.data.JsonStore({
             storeId: 'order_store',
+            autoSync: true,
             proxy: {
                 type: 'ajax',
                 url: '../customer/order_list_form.php',
@@ -168,6 +146,11 @@ $ids = array();
             ]
         });
         order_store.on('load', function () {
+            if(load) {
+                load = false;
+            } else {
+                return;
+            }
             order_store.data.removeAt(order_store.data.length - 1);
             //return;
             order_store.data.each(function(item, index, totalItems) {
@@ -177,11 +160,16 @@ $ids = array();
                 }
                 last_id = Math.min(item.data.id, last_id);
 
-                form_row(item.data, function(list) {
+                formRow(item.data, function(list) {
                     Ext.DomHelper.append(order_list, list);
                 });
 
+
+
             });
+
+            checkEmpty();
+            checkReadmore();
 
             $(".row").on({
                 mouseenter: function () {
@@ -191,6 +179,8 @@ $ids = array();
                     $(this).removeClass('hover');
                 }
             });
+
+
 
 
         });
@@ -209,28 +199,29 @@ $ids = array();
             text: '<?= _("Обновить") ?>',
             renderTo: 'refresh_button',
             icon: '../../public/img/refresh.gif',
-            listeners: {
-                click: function() {
-
-                    last_id = 0;
-                    Ext.get('order_list').update('');
-                    order_store.load({
-                        callback:function(records, operation, success){
-                            if(success == false){
-                                if(operation.error.status == 401) {
-                                    Ext.Msg.alert('<?= _("Ошибка") ?>', '<?= _("Вы вышли") ?>', function() {
-                                        window.location.href = "../../public/index.php";
-                                    });
-                                }
+            handler: function() {
+                last_id = 0;
+                $('#order_list').empty();
+                load = true;
+                order_store.loadRecords([]);
+                order_store.load({
+                    callback:function(records, operation, success){
+                        if(success == false){
+                            if(operation.error.status == 401) {
+                                Ext.Msg.alert('<?= _("Ошибка") ?>', '<?= _("Вы вышли") ?>', function() {
+                                    window.location.href = "../../public/index.php";
+                                });
                             }
                         }
-                    });
-                }
+                    }
+                });
             }
         });
 
         $(window).scroll(function() {
+
             if ($(window).scrollTop() == $(document).height() - $(window).height()) {
+                load = true;
                 Ext.getStore('order_store').loadRecords([]);
                 Ext.getStore('order_store').load({
                     params: {
@@ -248,10 +239,16 @@ $ids = array();
                 });
             }
         });
+
+
     });
 
-    function form_row(data, append) {
-        var list = '<tr class="pt10 pb10 border_bottom row" id="tr_' + data.id + '">';
+    function getTrId(id) {
+        return 'tr_' + id;
+    }
+
+    function formRow(data, append) {
+        var list = '<tr class="pt10 pb10 border_bottom row" id="' + getTrId(data.id) + '">';
 
         var id = 'complete_' + data.id;
 
@@ -263,9 +260,11 @@ $ids = array();
             contractor = '<div><image src="../../public/img/customer.png" style="vertical-align: middle"/> <span style="vertical-align: middle">' + data.contractor_id + '</span></div>';
         }
 
+
+
         list += '<td width="100" class="pl10"><div>№ ' + data.id + '</div></td>';
-        list += '<td>' + data.title + '</td>';
-        list += '<td width="200"><div class="mb5">' + data.status + '</div>' + contractor + '</td>';
+        list += '<td><div class="pl10 pr20"><div class="title">' + data.title + '</div></div></td>';
+        list += '<td width="200"><div class="mb5 pr20">' + data.status + '</div>' + contractor + '</td>';
         list += '<td width="100" id="' + id + '"><div class="mb5"><image src="../../public/img/money.png" style="vertical-align: middle"/> <span style="vertical-align: middle">' + data.price + '</span></div></td>';
 
         list += '</tr>';
@@ -279,7 +278,10 @@ $ids = array();
             icon: '../../public/img/delete.png',
             listeners: {
                 click: function() {
-                    $('#tr_' + data.id).fadeOut();
+                    $('#' + getTrId(data.id)).fadeOut(function() {
+                        this.remove();
+                        checkEmpty();
+                    });
                     Ext.Ajax.request({
                         url: '../customer/delete_order_form.php',
                         method: 'POST',
@@ -299,6 +301,23 @@ $ids = array();
         });
     }
 
+    function checkEmpty() {
+        if($(".row").length == 0) {
+            $("#empty").show();
+        } else {
+            $("#empty").hide();
+        }
+    }
+
+    function checkReadmore() {
+        $('.title').readmore({
+            speed: 75,
+            maxHeight: 40,
+            moreLink: '<a href="#"><?= _("Показать...") ?></a>',
+            lessLink: '<a href="#"><?= _("Скрыть...") ?></a>'
+        });
+    }
+
 
     </script>
 
@@ -315,6 +334,7 @@ $ids = array();
         </div>
         <div id="refresh_button" class="mt20"></div>
         <div class="hr mt10"></div>
+        <div class="minor cntr mt10" id="empty" style="display: none"><?= _("Нет заказов") ?></div>
         <table class="txt" width="720" border="0" cellspacing="0" cellpadding="0" style="table-layout:fixed">
             <tbody id="order_list" >
             </tbody>
@@ -339,6 +359,7 @@ $ids = array();
         Ext.onReady(function() {
 
             var last_id = 0;
+            var load = true;
 
             Ext.create('Ext.form.Panel', {
                 style: "margin: 0px auto 0px auto;",
@@ -358,7 +379,7 @@ $ids = array();
                         id: 'account',
                         width: 500,
                         style: 'text-align: left',
-                        text: '<?= _("На счету") ?>: <?php echo $_SESSION["account"]; ?>'
+                        text: '<?= _("На счету") ?>: <?php echo number_format($_SESSION["account"], 2); ?>'
                     }, {
                         xtype: 'tbfill'
                     }, {
@@ -397,7 +418,13 @@ $ids = array();
 
 
             order_store.on('load', function () {
+                if(load) {
+                    load = false;
+                } else {
+                    return;
+                }
                 order_store.data.removeAt(order_store.data.length - 1);
+
                 //return;
                 order_store.data.each(function(item, index, totalItems) {
 
@@ -407,14 +434,14 @@ $ids = array();
                     last_id = Math.min(item.data.id, last_id);
 
 
-                    var list = '<tr class="pt10 pb10 border_bottom row" id="tr_' + item.data.id + '">';
+                    var list = '<tr class="pt10 pb10 border_bottom row" id="' + getTrId(item.data.id) + '">';
 
                     var id = 'complete_' + item.data.id;
 
 
                     list += '<td width="100" class="pl10"><div>№ ' + item.data.id + '</div></td>';
-                    list += '<td>' + item.data.title + '</td>';
-                    list += '<td width="200"><div><image src="../../public/img/customer.png" style="vertical-align: middle"/> <span style="vertical-align: middle">' + item.data.customer_id + '</span></div></td>';
+                    list += '<td><div class="pl10 pr20"><div class="title">' + item.data.title + '</div></div></td>';
+                    list += '<td width="200"><div class="pr20"><image src="../../public/img/customer.png" style="vertical-align: middle"/> <span style="vertical-align: middle">' + item.data.customer_id + '</span></div></td>';
                     list += '<td width="100" id="' + id + '"><div class="mb5"><image src="../../public/img/money.png" style="vertical-align: middle"/> <span style="vertical-align: middle">' + item.data.price + '</span></div></td>';
 
                     list += '</tr>';
@@ -426,7 +453,12 @@ $ids = array();
                         icon: '../../public/img/accept.png',
                         listeners: {
                             click: function() {
-                                $('#tr_' + item.data.id).fadeOut();
+
+                                $('#' + getTrId(item.data.id)).fadeOut(function() {
+                                    this.remove();
+                                    checkEmpty();
+                                });
+
                                 Ext.Ajax.request({
                                     url: '../contractor/complete_order_form.php',
                                     method: 'POST',
@@ -436,10 +468,9 @@ $ids = array();
                                     success: function (result, request) {
                                         var data = Ext.JSON.decode(result.responseText);
                                         console.log(Ext.getCmp('account'));
-
-                                        Ext.getCmp('account').setHeight('auto');
                                         Ext.getCmp('account').update('<?= _("На счету") ?>: ' + data.response.account);
-                                        //Ext.getCmp('account').doLayout();
+                                        $('#account').hide();
+                                        $('#account').fadeIn();
                                     },
                                     failure: function (result, request) {
                                         if(result.status == 401) {
@@ -457,6 +488,9 @@ $ids = array();
                         }
                     });
                 });
+
+                checkEmpty();
+                checkReadmore();
 
                 $(".row").on({
                     mouseenter: function () {
@@ -488,6 +522,8 @@ $ids = array();
                     click: function() {
                         last_id = 0;
                         Ext.get('order_list').update('');
+                        load = true;
+                        Ext.getStore('order_store').loadRecords([]);
                         order_store.load({
                             callback:function(records, operation, success){
                                 if(success == false){
@@ -505,6 +541,7 @@ $ids = array();
 
             $(window).scroll(function() {
                 if ($(window).scrollTop() == $(document).height() - $(window).height()) {
+                    load = true;
                     Ext.getStore('order_store').loadRecords([]);
                     Ext.getStore('order_store').load({
                         params: {
@@ -524,6 +561,28 @@ $ids = array();
             });
 
         });
+
+        function getTrId(id) {
+            return 'tr_' + id;
+        }
+
+        function checkEmpty() {
+            if($(".row").length == 0) {
+                $("#empty").show();
+            } else {
+                $("#empty").hide();
+            }
+        }
+
+        function checkReadmore() {
+            $('.title').readmore({
+                speed: 75,
+                maxHeight: 40,
+                moreLink: '<a href="#"><?= _("Показать...") ?></a>',
+                lessLink: '<a href="#"><?= _("Скрыть...") ?></a>'
+            });
+        }
+
     </script>
 
 
@@ -536,14 +595,12 @@ $ids = array();
         <div>
             <div id="refresh_button" class="mt20"></div>
             <div class="hr mt10"></div>
+            <div class="minor cntr mt10" id="empty" style="display: none"><?= _("Нет заказов") ?></div>
             <table class="txt" width="720" border="0" cellspacing="0" cellpadding="0" style="table-layout:fixed">
                 <tbody id="order_list" >
                 </tbody>
             </table>
-
             <div class="mt20 mb20"></div>
-
-
         </div>
     </div>
 

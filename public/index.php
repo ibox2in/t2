@@ -1,6 +1,8 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html>
 <head>
     <title>АСВЗ</title>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
     <link rel="stylesheet" type="text/css" href="../../public/css/style.css" />
     <link rel="stylesheet" type="text/css" href="../../public/css/css/ext-all.css" />
     <script type="text/javascript" src="../../public/js/ext.js"></script>
@@ -15,16 +17,13 @@
             bodyPadding: 5,
             width: 300,
 
-            // The form will submit an AJAX request to this URL when submitted
             url: '../application/login/login_form.php',
 
-            // Fields will be arranged vertically, stretched to full width
             layout: 'anchor',
             defaults: {
                 anchor: '100%'
             },
 
-            // The fields
             defaultType: 'textfield',
             items: [{
                 fieldLabel: '<?= _("Логин") ?>',
@@ -38,11 +37,9 @@
 
 
             buttonAlign: 'center',
-            // Reset and Submit buttons
             buttons: [{
                 text: '<?= _("Войти") ?>',
                 formBind: true,
-                //only enabled once the form is valid
                 disabled: true,
                 handler: function () {
                     var form = this.up('form').getForm();
@@ -60,7 +57,6 @@
             }, {
                 text: '<?= _("Регистрация") ?>',
                 formBind: true,
-                //only enabled once the form is valid
                 disabled: true,
                 handler: function () {
                     login_form.hide();
@@ -75,23 +71,32 @@
             bodyPadding: 5,
             width: 300,
 
-            // The form will submit an AJAX request to this URL when submitted
             url: '../application/registration/registration_form.php',
 
-            // Fields will be arranged vertically, stretched to full width
             layout: 'anchor',
             defaults: {
                 anchor: '100%'
             },
 
-            // The fields
             defaultType: 'textfield',
             items: [{
                 fieldLabel: '<?= _("Логин") ?>',
-                name: 'login'
+                name: 'login',
+                validator: function (value) {
+                    if(value.length < 6 || value.length > 32) {
+                        return "<?= _("Длина от 6 до 32 символов") ?>";
+                    }
+                    return true;
+                }
             }, {
                 fieldLabel: '<?= _("Пароль") ?>',
-                name: 'password'
+                name: 'password',
+                validator: function (value) {
+                    if(value.length == 0) {
+                        return "<?= _("Обязательное поле") ?>";
+                    }
+                    return true;
+                }
             }, {
                 xtype: 'radiogroup',
                 columns: 1,
@@ -113,7 +118,6 @@
 
 
             buttonAlign: 'center',
-            // Reset and Submit buttons
             buttons: [{
                 text: '<?= _("Зарегистрироваться") ?>',
                 formBind: true,
@@ -127,7 +131,9 @@
                                 window.location.href = "../application/common/feed.php";
                             },
                             failure: function (form, action) {
-                                Ext.Msg.alert('<?= _("Ошибка") ?>', '<?= _("Произошла какая то ошибка") ?>');
+                                if(action.response.status == 406) {
+                                    Ext.Msg.alert('<?= _("Ошибка") ?>', '<?= _("Неправильный ввод") ?>');
+                                }
                             }
                         });
                     }

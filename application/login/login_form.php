@@ -5,10 +5,11 @@
  */
 
 require_once("../util/session_util.php");
+require_once("../util/json_util.php");
 
 init_session();
 if(login($_POST["login"], md5($_POST["password"]))) {
-    echo "{'success':true}";
+    echo JSON_SUCCESS_TRUE;
 } else {
-    echo "{'success':false}";
+    echo JSON_SUCCESS_FALSE;
 }

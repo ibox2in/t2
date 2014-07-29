@@ -38,5 +38,6 @@ foreach($users as $key => &$val) {
 
 foreach($orders as $key => &$val) {
     $val["contractor_id"] = $map[$val["contractor_id"]];
+    $val["price"] = number_format($val["price"], 2);
 }
 echo json_encode($orders);

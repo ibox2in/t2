@@ -9,4 +9,6 @@ include(get_config()["paths"]["util"]."db_util.php");
 
 if(!get_config()["setup"]) {
     init_db(true);
+} else {
+    echo ";(";
 }

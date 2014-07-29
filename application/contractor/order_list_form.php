@@ -34,5 +34,6 @@ foreach($users as $key => &$val) {
 
 foreach($orders as $key => &$val) {
     $val["customer_id"] = $map[$val["customer_id"]];
+    $val["price"] = number_format($val["price"] - $val["price"] * COMMISSION_FEE, 2);
 }
 echo json_encode($orders);

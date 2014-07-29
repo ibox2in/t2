@@ -16,33 +16,38 @@ if(!check_auth(false)) {
 }
 
 $order_connection = get_connection_order_db();
-mysql_query("START TRANSACTION", $order_connection);
+mysqli_query($order_connection, "START TRANSACTION");
 $order = get_order_by_id_update(intval($_POST["order_id"]), $order_connection);
 if($order["deleted"]) {
-    mysql_query("COMMIT", $order_connection);
+    mysqli_query($order_connection, "COMMIT");
     header('HTTP/1.1 410 Gone', true, 410);
     die();
 }
 if($order["profit"] != 0) {
-    mysql_query("COMMIT", $order_connection);
+    mysqli_query($order_connection, "COMMIT");
     header('HTTP/1.1 403 Forbidden', true, 403);
     die();
 }
 $commission = $order["price"] * COMMISSION_FEE;
 
 $user = get_user_by_id($_SESSION["uid"]);
+if($user["type"] != TYPE_CONTRACTOR) {
+    mysqli_query($order_connection, "COMMIT");
+    die();
+}
+
 $account = $user["account"] + $order["price"] - $order["price"] * COMMISSION_FEE;
 
 $user_connection = get_connection_user_db();
 
-mysql_query("START TRANSACTION", $user_connection);
+mysqli_query($user_connection, "START TRANSACTION");
 if (update_order_status_and_contractor_id_and_profit($order["id"], STATUS_COMPLETED, $_SESSION["uid"], $commission, $order_connection) && update_user_account($user["id"], $account, $user_connection)) {
-    mysql_query("COMMIT", $order_connection);
-    mysql_query("COMMIT", $user_connection);
+    mysqli_query($order_connection, "COMMIT");
+    mysqli_query($user_connection, "COMMIT");
     $_SESSION["account"] = $account;
 } else {
-    mysql_query("ROLLBACK", $order_connection);
-    mysql_query("ROLLBACK", $user_connection);
+    mysqli_query($order_connection, "ROLLBACK");
+    mysqli_query($user_connection, "ROLLBACK");
 }
 
-echo form_json_success(array("account" => $account));
+echo form_json_success(array("account" => number_format($account, 2)));

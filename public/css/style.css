@@ -46,17 +46,32 @@
 .pr10 {
     padding-right: 10px;
 }
+.pr20 {
+    padding-right: 20px;
+}
 .txt {
     font: normal 11px/13px tahoma,arial,verdana,sans-serif;
 }
 .hr {
     height:0;color:#DDDDDD;background-color:#DDDDDD;border-top:none;border-bottom:#DDDDDD solid 1px;
 }
-.fit {
-    width: 1px;
-}
 .hover {
     background-color: #EFEFEF;
+}
+.minor {
+    color: gray;
+}
+a:link {
+    text-decoration: none;
+    color: #728FCE;
+}
+a:visited {
+    text-decoration: none;
+    color: #728FCE;
+}
+
+td{
+    word-wrap:break-word
 }
 
 tr.pt10 td {
@@ -71,18 +86,4 @@ tr.border_bottom td {
 }
 
 
-
-
-.pt10 .x-grid-cell {
-    padding-top: 10px;
-}
-.pb10 .x-grid-cell {
-    padding-bottom: 10px;
-}
-.pl10 .x-grid-cell {
-    padding-left: 10px;
-}
-.pr10 .x-grid-cell {
-    padding-right: 10px;
-}
 
